@@ -1,0 +1,31 @@
+# Ignore everything
+*
+
+# Except these files
+!generador_calendarios.py
+!generador_calendarios_gui.py
+!generador_calendarios_flet.py
+!requirements.txt
+
+# Never ignore .gitignore itself
+!.gitignore
+
+# Ignore folders
+assets/
+SMC/
+old/
+
+# Ignore Python cache and environment files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+
+# Ignore build scripts and docs
+build_exe.py
+INSTRUCCIONES_CLIENTE.md
+INSTRUCCIONES_WINDOWS.md
+INSTRUCCIONES_WINDOWS.txt
+README_BUILD.md
