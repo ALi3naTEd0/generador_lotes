@@ -4,6 +4,54 @@ from typing import List, Dict
 import os
 
 class GeneradorCalendarioCultivo:
+    def _agregar_semana_8_9(self, tareas, fechas_semanas, lote, proyecto):
+        """Semanas 8-9: Crecimiento tardío"""
+        seccion = 'Crecimiento tardío'
+        for idx, fechas in enumerate(fechas_semanas, 8):
+            num_semana = f'S{idx}'
+            if idx == 8:
+                # Martes S8: TRASPLANTE CRECIMIENTO TARDIO - CON DEPENDENCIAS
+                tarea_trasplante = self._crear_tarea(
+                    f'TRASPLANTE CRECIMIENTO TARDIO - SEMANA {idx}',
+                    seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
+                    'INDICACIONES: \n    PREPARAR FERTILIZANTE VERDE 35 GAL CON 14 ML. DE ACIDO (AGUA PURIFICADA)\n    APLICAR 3/4 TBSP. DE BACTERIAS AL SUSTRATO X MACETA\n    TRASPLANTAR\n    REGAR FERTILIZANTE VERDE 2 LT. X MACETA',
+                    num_semana, lote, proyecto, seccion, 'SUSTRATO'
+                )
+                tarea_trasplante['Blocked By (Dependencies)'] = 'ARMADO MACETA CRECIMINETO TARDIO - SEMANA 7'
+                tarea_trasplante['Blocking (Dependencies)'] = 'REGAR TRANSICION MACETA I - SEMANA 10'
+                tareas.append(tarea_trasplante)
+            else:
+                # Martes S9: REGAR MACETA I
+                tareas.append(self._crear_tarea(
+                    f'REGAR MACETA I - SEMANA {idx}',
+                    seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
+                    'INDICACIONES: \n    PREPARAR 35 GAL. DE AGUA CON 14 MLT. DE ACIDO\n    REGAR 2 LT. X MACETA',
+                    num_semana, lote, proyecto, seccion, 'SUSTRATO'
+                ))
+            # Jueves: REGAR MACETA II
+            tareas.append(self._crear_tarea(
+                f'REGAR MACETA II - SEMANA {idx}',
+                seccion, '', fechas[1],
+                'INDICACIONES: \nVERIFICAR HUMEDAD DEL SUSTRATO Y REGAR AGUA DE SER REQUERIDO' if idx == 8 else 'INDICACIONES: \nVERIFICAR HUMEDAD DEL SUSTRATO Y REGAR DE SER REQUERIDO',
+                num_semana, lote, proyecto, seccion, 'SUSTRATO'
+            ))
+            # Sábado: REGAR MACETA III
+            tareas.append(self._crear_tarea(
+                f'REGAR MACETA III - SEMANA {idx}',
+                seccion, '', fechas[2],
+                'INSTRUCCIONES: \nVERIFICAR HUMEDAD DEL SUSTRATO Y REGAR DE SER REQUERIDO',
+                num_semana, lote, proyecto, seccion, 'SUSTRATO'
+            ))
+            # FUMIGAR en semanas según tabla (último día laboral)
+            nota = self._nota_fumigacion_para_semana(idx)
+            if nota:
+                fechas_fum = self._ultimo_dia_laboral(fechas)
+                tareas.append(self._crear_tarea(
+                    f'FUMIGAR - SEMANA {idx}',
+                    seccion, 'dgnerazion@gmail.com', fechas_fum,
+                    nota,
+                    num_semana, lote, proyecto, seccion, 'FOLIAR', start_date=None
+                ))
     def __init__(self):
         self.task_id_counter_c = 1211904384322853  # Para archivos _C (clonación)
         self.task_id_counter_d = 1211904167192229  # Para archivos _D (crecimiento)
@@ -195,22 +243,25 @@ class GeneradorCalendarioCultivo:
         else:  # SMB o RP
             patron = 'martes-jueves-sabado'
         
+        # Generar 18 semanas, pero omitir solo la semana de agua en la lógica de floración
         fechas_semanas = self.generar_fechas_patron(fecha_inicio, patron, 18)
-        
+
         # SEMANA 5: Crecimiento temprano - Trasplante
         self._agregar_semana_5(tareas, fechas_semanas[0], lote, proyecto)
-        
+
         # SEMANAS 6-7: Crecimiento temprano
         self._agregar_semana_6_7(tareas, fechas_semanas[1:3], lote, proyecto)
-        
+
         # SEMANAS 8-9: Crecimiento tardío
         self._agregar_semana_8_9(tareas, fechas_semanas[3:5], lote, proyecto)
-        
-        # SEMANAS 10-20: Floración
-        self._agregar_semanas_floracion(tareas, fechas_semanas[5:16], lote, proyecto)
-        
-        # SEMANAS 21-22: Post-cosecha
-        self._agregar_semanas_postcosecha(tareas, fechas_semanas[16:18], lote, proyecto)
+
+        # SEMANAS 10-19: Floración
+        # indices: fechas_semanas[5] -> S10, ... fechas_semanas[14] -> S19
+        self._agregar_semanas_floracion(tareas, fechas_semanas[5:15], lote, proyecto)
+
+        # SEMANAS 20-21: Post-cosecha (secado y trimeado)
+        # fechas_semanas[15] -> S20, [16] -> S21
+        self._agregar_semanas_postcosecha(tareas, fechas_semanas[15:17], lote, proyecto)
         
         return tareas
     
@@ -248,16 +299,16 @@ class GeneradorCalendarioCultivo:
             'Crecimiento temprano',
             'dgnerazion@gmail.com',
             fechas[2],
-            'FUMIGAR DE ABAJO HACIA ARRIBA TODO EL LOTE CON:\n    PACAYA (BIFENTRINA)  2ML. / LT.\n    CAPTAN     2 GR. / LT.\n    SULTRON   2 ML. / LT.\n\n',
+            self._nota_fumigacion_para_semana(5),
             'S5', lote, proyecto, 'Crecimiento temprano', 'FOLIAR',
             start_date=None  # Sin start date para fumigación
         ))
     
     def _agregar_semana_6_7(self, tareas, fechas_semanas, lote, proyecto):
         """Semanas 6-7: Crecimiento temprano"""
+        seccion = 'Crecimiento temprano'
         for idx, fechas in enumerate(fechas_semanas, 6):
             num_semana = f'S{idx}'
-            
             # Martes: REGAR VERDE o REGAR MACETA I
             if idx == 6:
                 tareas.append(self._crear_tarea(
@@ -281,105 +332,58 @@ class GeneradorCalendarioCultivo:
                 'INDICACIONES: \nVERIFICAR HUMEDAD DEL SUSTRATO Y REGAR DE SER REQUERIDO',
                 num_semana, lote, proyecto, 'Crecimiento temprano', 'SUSTRATO'
             ))
-            
-            # Jueves (S7): ARMADO MACETA - CON DEPENDENCIA A TRASPLANTE S8
-            if idx == 7:
-                tarea_armado = self._crear_tarea(
-                    f'ARMADO MACETA CRECIMINETO TARDIO - SEMANA {idx}',
-                    'Crecimiento temprano', 'alejandroseguraestrada3@gmail.com', fechas[1],
-                    'INDICACIONES:\n    CORTAR BOLSAS 60X60\n    PREPARAR SUSTRATO, 4 BULTOS MIX3, 8 BULTOS PERLITA, 8 PQ FIBRA DE COCO\n    LLENAR BOLSA 60X60 CON 10 GAL',
-                    num_semana, lote, proyecto, 'Crecimiento temprano', 'SUSTRATO'
-                )
-                # Agregar dependencia: TRASPLANTE S8 depende de este ARMADO
-                tarea_armado['Blocking (Dependencies)'] = 'TRASPLANTE CRECIMIENTO TARDIO - SEMANA 8'
-                tareas.append(tarea_armado)
-            
-            # Sábado: REGAR MACETA III y FUMIGAR
+            # Sábado: REGAR MACETA III (faltaba)
             tareas.append(self._crear_tarea(
                 f'REGAR MACETA III - SEMANA {idx}',
                 'Crecimiento temprano', '', fechas[2],
-                'INSTRUCCIONES: \nVERIFICAR HUMEDAD DEL SUSTRATO Y REGAR DE SER REQUERIDO',
+                'INDICACIONES: \n    VERIFICAR HUMEDAD DEL SUSTRATO Y REGAR DE SER REQUERIDO',
                 num_semana, lote, proyecto, 'Crecimiento temprano', 'SUSTRATO'
             ))
-            
-            fumigar_nota = 'FUMIGAR DE ABAJO HACIA ARRIBA TODO EL LOTE CON:\n    WARTON   0.50 ML. / LT.\n    CAPTAN     2 GR. / LT.' if idx == 6 else 'FUMIGAR DE ABAJO HACIA ARRIBA TODO EL LOTE CON:\n    PACAYA (BIFENTRINA)  2ML. / LT.\n    AVALANT   2 ML. / LT.'
-            tareas.append(self._crear_tarea(
-                f'FUMIGAR - SEMANA {idx}',
-                'Crecimiento temprano', 'dgnerazion@gmail.com', fechas[2],
-                fumigar_nota, num_semana, lote, proyecto, 'Crecimiento temprano', 'FOLIAR',
-                start_date=None
-            ))
-    
-    def _agregar_semana_8_9(self, tareas, fechas_semanas, lote, proyecto):
-        """Semanas 8-9: Crecimiento tardío"""
-        for idx, fechas in enumerate(fechas_semanas, 8):
-            num_semana = f'S{idx}'
-            seccion = 'Crecimiento tardío'
-            
-            if idx == 8:
-                # Martes S8: TRASPLANTE CRECIMIENTO TARDIO - CON DEPENDENCIAS
-                tarea_trasplante = self._crear_tarea(
-                    f'TRASPLANTE CRECIMIENTO TARDIO - SEMANA {idx}',
-                    seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
-                    'INDICACIONES: \n    PREPARAR FERTILIZANTE VERDE 35 GAL CON 14 ML. DE ACIDO (AGUA PURIFICADA)\n    APLICAR 3/4 TBSP. DE BACTERIAS AL SUSTRATO X MACETA\n    TRASPLANTAR\n    REGAR FERTILIZANTE VERDE 2 LT. X MACETA',
-                    num_semana, lote, proyecto, seccion, 'SUSTRATO'
-                )
-                # Depende de ARMADO MACETA S7 y bloquea REGAR TRANSICION S10
-                tarea_trasplante['Blocked By (Dependencies)'] = 'ARMADO MACETA CRECIMINETO TARDIO - SEMANA 7'
-                tarea_trasplante['Blocking (Dependencies)'] = 'REGAR TRANSICION MACETA I - SEMANA 10'
-                tareas.append(tarea_trasplante)
-            else:
-                # Martes S9: REGAR MACETA I
-                tareas.append(self._crear_tarea(
-                    f'REGAR MACETA I - SEMANA {idx}',
-                    seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
-                    'INDICACIONES: \n    PREPARAR 35 GAL. DE AGUA CON 14 MLT. DE ACIDO\n    REGAR 2 LT. X MACETA',
-                    num_semana, lote, proyecto, seccion, 'SUSTRATO'
-                ))
-            
-            # Jueves: REGAR MACETA II
-            tareas.append(self._crear_tarea(
-                f'REGAR MACETA II - SEMANA {idx}',
-                seccion, '', fechas[1],
-                'INDICACIONES: \nVERIFICAR HUMEDAD DEL SUSTRATO Y REGAR AGUA DE SER REQUERIDO' if idx == 8 else 'INDICACIONES: \nVERIFICAR HUMEDAD DEL SUSTRATO Y REGAR DE SER REQUERIDO',
-                num_semana, lote, proyecto, seccion, 'SUSTRATO'
-            ))
-            
-            # Sábado: REGAR MACETA III
-            tareas.append(self._crear_tarea(
-                f'REGAR MACETA III - SEMANA {idx}',
-                seccion, '', fechas[2],
-                'INSTRUCCIONES: \nVERIFICAR HUMEDAD DEL SUSTRATO Y REGAR DE SER REQUERIDO',
-                num_semana, lote, proyecto, seccion, 'SUSTRATO'
-            ))
-            
-            # FUMIGAR solo en semana 8 (NO en semana 9)
-            if idx == 8:
+            # FUMIGAR en semanas 6 y 7 (usar tabla)
+            nota_fum = self._nota_fumigacion_para_semana(idx)
+            if nota_fum:
+                fecha_fum = self._ultimo_dia_laboral(fechas)
                 tareas.append(self._crear_tarea(
                     f'FUMIGAR - SEMANA {idx}',
-                    seccion, 'dgnerazion@gmail.com', fechas[2],
-                    'FUMIGAR DE ABAJO HACIA ARRIBA TODO EL LOTE CON:\n    PACAYA (BIFENTRINA)  2ML. / LT.\n    CAPTAN     2 GR. / LT.\n    SULTRON   2 ML. / LT.\n\n',
-                    num_semana, lote, proyecto, seccion, 'FOLIAR', start_date=None
+                    'Crecimiento temprano', 'dgnerazion@gmail.com', fecha_fum,
+                    nota_fum,
+                    num_semana, lote, proyecto, 'Crecimiento temprano', 'FOLIAR', start_date=None
                 ))
+            # ARMADO MACETA CRECIMINETO TARDIO en semana 7 (día laboral intermedio)
+            if idx == 7:
+                tareas.append(self._crear_tarea(
+                    'ARMADO MACETA CRECIMINETO TARDIO - SEMANA 7',
+                    seccion, 'dgnerazion@gmail.com', fechas[1],
+                    'INDICACIONES:\n    CORTAR BOLSAS 60X60\n    PREPARAR SUSTRATO, 4 BULTOS MIX3, 8 BULTOS PERLITA, 8 PQ FIBRA DE COCO\n    LLENAR BOLSA 60X60 CON 10 GAL',
+                    'S7', lote, proyecto, seccion, 'SUSTRATO'
+                ))
+            
+
 
     def _agregar_semanas_floracion(self, tareas, fechas_semanas, lote, proyecto):
-        """Semanas 10-20: Floración (COMPLETO con los 3 días por semana)"""
+        """Semanas 10-19: Floración (limpia, sin duplicados)."""
         seccion = 'Floración'
-        
         for idx, fechas in enumerate(fechas_semanas, 10):
+            # Limitar a la ventana 10..19
+            if idx < 10:
+                continue
+            if idx > 19:
+                break
+
             num_semana = f'S{idx}'
-            
-            # DÍA 1 (Lunes/FSM o Martes/SMB-RP): Tareas principales según semana
+            maceta1_added = False
+
+            # DÍA 1: tareas principales según semana
             if idx == 10:
-                tarea_transicion = self._crear_tarea(
+                tarea = self._crear_tarea(
                     f'REGAR TRANSICION MACETA I - SEMANA {idx}',
                     seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
                     'INDICACIONES: \n    PREPARAR FERTILIZANTE TRANSICION PARA 35 GAL \n    REGAR FERTILIZANTE TRANSICION 2 LT. X MACETA',
                     num_semana, lote, proyecto, seccion, 'SUSTRATO'
                 )
-                # Depende de TRASPLANTE S8
-                tarea_transicion['Blocked By (Dependencies)'] = 'TRASPLANTE CRECIMIENTO TARDIO - SEMANA 8'
-                tareas.append(tarea_transicion)
+                tarea['Blocked By (Dependencies)'] = 'TRASPLANTE CRECIMIENTO TARDIO - SEMANA 8'
+                tareas.append(tarea)
+                maceta1_added = True
             elif idx == 11:
                 tareas.append(self._crear_tarea(
                     f'REGAR FLOR. TEMPRANO MACETA I - SEMANA {idx}',
@@ -394,20 +398,21 @@ class GeneradorCalendarioCultivo:
                     num_semana, lote, proyecto, seccion, 'N/A', start_date=None,
                     blocked_by='SANITIZADO Y PREPARADO DE EQUIPO (TUTORADO) - SEMANA 10'
                 ))
-            elif idx in [12, 15, 18]:
+                maceta1_added = True
+            elif idx == 12:
                 tareas.append(self._crear_tarea(
                     f'REGAR AGUA MACETA I - SEMANA {idx}',
                     seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
-                    f'INDICACIONES: \n    PREPARAR 35 GAL. DE AGUA CON {10 if idx <= 15 else 7} MLT. DE ACIDO (AGUA PURIFICADA)\n    REGAR 2 LT. X MACETA',
+                    'INDICACIONES: \n    PREPARAR 35 GAL. DE AGUA CON 10 MLT. DE ACIDO (AGUA PURIFICADA)\n    REGAR 2 LT. X MACETA',
                     num_semana, lote, proyecto, seccion, 'SUSTRATO'
                 ))
-                if idx == 12:
-                    tareas.append(self._crear_tarea(
-                        f'PODA Y TUTORADO - SEMANA {idx}',
-                        seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
-                        '    PODAR PARTE BAJA Y TUTORAR. \n    BARRER Y LIMPIAR EL ÁREA DE TRABAJO AL FINALIZAR LA ACTIVIDAD.',
-                        num_semana, lote, proyecto, seccion, 'N/A', start_date=None
-                    ))
+                tareas.append(self._crear_tarea(
+                    f'PODA Y TUTORADO - SEMANA {idx}',
+                    seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
+                    '    PODAR PARTE BAJA Y TUTORAR. \n    BARRER Y LIMPIAR EL ÁREA DE TRABAJO AL FINALIZAR LA ACTIVIDAD.',
+                    num_semana, lote, proyecto, seccion, 'N/A', start_date=None
+                ))
+                maceta1_added = True
             elif idx in [13, 14]:
                 tareas.append(self._crear_tarea(
                     f'REGAR FLOR. INTERMEDIO MACETA I - SEMANA {idx}',
@@ -415,6 +420,16 @@ class GeneradorCalendarioCultivo:
                     'INDICACIONES: \n    PREPARAR FLOR INTERMEDIO 35 GAL. DE AGUA CON 10 MLT. DE ACIDO (AGUA PURIFICADA)\n    REGAR 2 LT. X MACETA',
                     num_semana, lote, proyecto, seccion, 'SUSTRATO'
                 ))
+                maceta1_added = True
+            elif idx == 15:
+                # Semana 15: AGUA
+                tareas.append(self._crear_tarea(
+                    f'REGAR AGUA MACETA I - SEMANA {idx}',
+                    seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
+                    'INDICACIONES: \n    PREPARAR 35 GAL. DE AGUA CON 10 MLT. DE ACIDO (AGUA PURIFICADA)\n    REGAR 2 LT. X MACETA',
+                    num_semana, lote, proyecto, seccion, 'SUSTRATO'
+                ))
+                maceta1_added = True
             elif idx in [16, 17]:
                 tareas.append(self._crear_tarea(
                     f'REGAR FLOR. TARDIO MACETA I - SEMANA {idx}',
@@ -422,30 +437,62 @@ class GeneradorCalendarioCultivo:
                     f'INDICACIONES: \n    PREPARAR 35 GAL. DE AGUA CON {10 if idx == 16 else 7} MLT. DE ACIDO (AGUA PURIFICADA)\n    REGAR 2 LT. X MACETA',
                     num_semana, lote, proyecto, seccion, 'SUSTRATO'
                 ))
-            elif idx == 19:
+                maceta1_added = True
+                maceta1_added = True
+            elif idx == 18:
                 tareas.append(self._crear_tarea(
                     f'REGAR MADURACION MACETA I - SEMANA {idx}',
                     seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
                     'INDICACIONES: \n    PREPARAR 35 GAL. DE AGUA CON 7 MLT. DE ACIDO (AGUA PURIFICADA)\n    REGAR 2 LT. X MACETA',
                     num_semana, lote, proyecto, seccion, 'SUSTRATO'
                 ))
-            elif idx == 20:
+                maceta1_added = True
+                # Añadir poda del sábado de la semana anterior (S18 Sábado)
+                tarea_poda18 = self._crear_tarea(
+                    f'PODA DE HOJAS PARA COSECHA - SEMANA {idx}',
+                    seccion, 'alejandroseguraestrada3@gmail.com', fechas[2],
+                    'INDICACIONES:\n    PODAR TODAS LAS HOJAS CON TALLO',
+                    num_semana, lote, proyecto, seccion, '', start_date=None
+                )
+                # Esta poda de S18 contribuye a la cosecha de la siguiente semana
+                tarea_poda18['Blocking (Dependencies)'] = 'COSECHA - SEMANA 19'
+                tareas.append(tarea_poda18)
+            elif idx == 19:
                 tareas.append(self._crear_tarea(
                     f'REGAR FLUSH MACETA I - SEMANA {idx}',
                     seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
                     'INDICACIONES: \n    PREPARAR 35 GAL. DE AGUA PURIFICADA\n    REGAR 2 LT. X MACETA',
                     num_semana, lote, proyecto, seccion, 'SUSTRATO'
                 ))
-                tareas.append(self._crear_tarea(
+                # Poda principal en LUNES de la semana 19
+                tarea_poda19 = self._crear_tarea(
                     f'PODA DE HOJAS PARA COSECHA - SEMANA {idx}',
                     seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
                     'INDICACIONES:\n    PODAR TODAS LAS HOJAS CON TALLO',
                     num_semana, lote, proyecto, seccion, '', start_date=None
+                )
+                tarea_poda19['Blocking (Dependencies)'] = 'COSECHA - SEMANA 19'
+                tareas.append(tarea_poda19)
+                # COSECHA y LAVADO en S19
+                tarea_cosecha_19 = self._crear_tarea(
+                    'COSECHA - SEMANA 19',
+                    'Cosecha y post-procesamiento', 'alejandroseguraestrada3@gmail.com', fechas[2],
+                    'COSECHAR PLANTAS',
+                    num_semana, lote, proyecto, 'Cosecha y post-procesamiento', ''
+                )
+                # Bloqueada por poda S18 (sábado) y poda S19 (lunes)
+                tarea_cosecha_19['Blocked By (Dependencies)'] = 'PODA DE HOJAS PARA COSECHA - SEMANA 18,PODA DE HOJAS PARA COSECHA - SEMANA 19'
+                tareas.append(tarea_cosecha_19)
+                tareas.append(self._crear_tarea(
+                    'LAVADO Y SANITIZADO DE CUARTO - SEMANA 19',
+                    'Cosecha y post-procesamiento', 'dgnerazion@gmail.com', fechas[2],
+                    'INSTRUCCIONES: \n    LAVAR CON DETERGENTE PISOS Y PAREDES. \n    LAVAR VENTILADORES. \n    LAVAR FILTROS DE CARBON \n    LAVAR DESHUMIDIFICADORES \n    ENJUAGR TODO LO ANTERIOR CON AGUA CON CLORO \n    MANTENIMIENTO A CLIMAS',
+                    num_semana, lote, proyecto, 'Cosecha y post-procesamiento', ''
                 ))
-            
-            # DÍA 2 (Miércoles/FSM o Jueves/SMB-RP): REGAR MACETA II
+                maceta1_added = True
+
+            # DÍA 2: REGAR MACETA II y tareas de sanitizado
             if idx == 10:
-                # Agregar tarea de preparación de equipo en día 2 de semana 10
                 tarea_sanitizado = self._crear_tarea(
                     'SANITIZADO Y PREPARADO DE EQUIPO (TUTORADO) - SEMANA 10',
                     seccion, 'alejandroseguraestrada3@gmail.com', fechas[1],
@@ -454,9 +501,8 @@ class GeneradorCalendarioCultivo:
                 )
                 tarea_sanitizado['Blocking (Dependencies)'] = 'PODA Y TUTORADO - SEMANA 11'
                 tareas.append(tarea_sanitizado)
-            
+
             if idx in [11, 12]:
-                # Semanas 11 y 12 tienen nota especial con TUTORADO
                 tareas.append(self._crear_tarea(
                     f'REGAR MACETA II - SEMANA {idx}',
                     seccion, '', fechas[1],
@@ -477,8 +523,18 @@ class GeneradorCalendarioCultivo:
                     'INDICACIONES: \nVERIFICAR HUMEDAD DEL SUSTRATO Y REGAR DE SER REQUERIDO',
                     num_semana, lote, proyecto, seccion, 'SUSTRATO'
                 ))
-            
-            # DÍA 3 (Viernes/FSM o Sábado/SMB-RP): REGAR MACETA III + tareas especiales
+
+            # Si no se creó una tarea para MACETA I en DÍA 1, crearla ahora (ej. S17)
+            if not maceta1_added:
+                acid = 10 if idx <= 15 else 7
+                tareas.append(self._crear_tarea(
+                    f'REGAR MACETA I - SEMANA {idx}',
+                    seccion, 'alejandroseguraestrada3@gmail.com' if idx <= 15 else '', fechas[0],
+                    f'INDICACIONES: \n    VERIFICAR HUMEDAD DEL SUSTRATO Y REGAR DE SER REQUERIDO\n    PREPARAR AGUA 35 GAL CON {acid} MLT DE ACIDO (AGUA PURIFICADA)\n    REGAR 2 LT. X MACETA',
+                    num_semana, lote, proyecto, seccion, 'SUSTRATO'
+                ))
+
+            # DÍA 3: REGAR MACETA III
             if idx >= 12:
                 tareas.append(self._crear_tarea(
                     f'REGAR MACETA III - SEMANA {idx}',
@@ -493,71 +549,37 @@ class GeneradorCalendarioCultivo:
                     'INDICACIONES: \n    VERIFICAR HUMEDAD DEL SUSTRATO Y REGAR DE SER REQUERIDO',
                     num_semana, lote, proyecto, seccion, 'SUSTRATO'
                 ))
-            
-            # FUMIGAR solo en semanas pares (10, 12, 14) - TERMINA EN SEMANA 14
-            if idx % 2 == 0 and idx <= 14:
-                fumigar_nota = 'FUMIGAR DE ABAJO HACIA ARRIBA TODO EL LOTE CON:\n    PACAYA (BIFENTRINA)  2ML. / LT.\n    CAPTAN     2 GR. / LT.\n    SULTRON   2 ML. / LT.\n\n' if idx == 10 else 'FUMIGAR DE ABAJO HACIA ARRIBA TODO EL LOTE CON:\n    WARTON   0.50 ML. / LT.\n    CAPTAN     2 GR. / LT.'
+
+            # FUMIGAR en semanas 10..15 según tabla (último día laboral)
+            nota_fum = self._nota_fumigacion_para_semana(idx)
+            if nota_fum:
+                fecha_fum = self._ultimo_dia_laboral(fechas)
                 tareas.append(self._crear_tarea(
                     f'FUMIGAR - SEMANA {idx}',
-                    seccion, 'dgnerazion@gmail.com', fechas[2],
-                    fumigar_nota,
+                    seccion, 'dgnerazion@gmail.com', fecha_fum,
+                    nota_fum,
                     num_semana, lote, proyecto, seccion, 'FOLIAR', start_date=None
                 ))
-            
-            # Semana 19: Poda adicional con dependencia
-            if idx == 19:
-                tarea_poda19 = self._crear_tarea(
-                    f'PODA DE HOJAS PARA COSECHA - SEMANA {idx}',
-                    seccion, 'alejandroseguraestrada3@gmail.com', fechas[2],
-                    'INDICACIONES:\n    PODAR TODAS LAS HOJAS CON TALLO',
-                    num_semana, lote, proyecto, seccion, '', start_date=None
-                )
-                tarea_poda19['Blocking (Dependencies)'] = 'COSECHA - SEMANA 20'
-                tareas.append(tarea_poda19)
-            
-            # Semana 20: Cosecha con dependencias
-            if idx == 20:
-                tarea_poda20 = self._crear_tarea(
-                    'PODA DE HOJAS PARA COSECHA - SEMANA 20',
-                    seccion, 'alejandroseguraestrada3@gmail.com', fechas[0],
-                    'INDICACIONES:\n    PODAR TODAS LAS HOJAS CON TALLO',
-                    num_semana, lote, proyecto, seccion, '', start_date=None
-                )
-                tarea_poda20['Blocking (Dependencies)'] = 'COSECHA - SEMANA 20'
-                tareas.append(tarea_poda20)
-                
-                tarea_cosecha = self._crear_tarea(
-                    'COSECHA - SEMANA 20',
-                    seccion, 'alejandroseguraestrada3@gmail.com', fechas[2],
-                    'COSECHAR PLANTAS',
-                    num_semana, lote, proyecto, seccion, ''
-                )
-                tarea_cosecha['Blocked By (Dependencies)'] = 'PODA DE HOJAS PARA COSECHA - SEMANA 20,PODA DE HOJAS PARA COSECHA - SEMANA 19'
-                tareas.append(tarea_cosecha)
-                
-                tareas.append(self._crear_tarea(
-                    'LAVADO Y SANITIZADO DE CUARTO - SEMANA 20',
-                    seccion, 'dgnerazion@gmail.com', fechas[2],
-                    'INSTRUCCIONES: \n    LAVAR CON DETERGENTE PISOS Y PAREDES. \n    LAVAR VENTILADORES. \n    LAVAR FILTROS DE CARBON \n    LAVAR DESHUMIDIFICADORES \n    ENJUAGR TODO LO ANTERIOR CON AGUA CON CLORO \n    MANTENIMIENTO A CLIMAS',
-                    num_semana, lote, proyecto, seccion, ''
-                ))
+
+            # (poda de semana 19 ya creada en el bloque de día 1; evitar duplicado)
 
     def _agregar_semanas_postcosecha(self, tareas, fechas_semanas, lote, proyecto):
         """Semanas 21-22: Secado y Trimeado"""
-        for idx, fechas in enumerate(fechas_semanas, 21):
+        # Empezar en S20 (las fechas recibidas corresponden a S20..S21)
+        for idx, fechas in enumerate(fechas_semanas, 20):
             num_semana = f'S{idx}'
             seccion = 'Cosecha y post-procesamiento'
-            
-            if idx == 21:
-                # Semana 21: SECADO (3 días)
+
+            if idx == 20:
+                # Semana 20: SECADO (3 días)
                 for i, fecha in enumerate(fechas):
                     tareas.append(self._crear_tarea(
                         f'SECADO - SEMANA {idx}',
-                        seccion, '', fecha, 'PODAR TODAS LAS HOJAS',
+                        seccion, '', fecha, 'SECADO',
                         num_semana, lote, proyecto, seccion, '', start_date=None
                     ))
-            else:  # S22
-                # Semana 22: TRIMEADO Y EMPACADO (3 días)
+            elif idx == 21:
+                # Semana 21: TRIMEADO Y EMPACADO (3 días)
                 nombres = ['TRIMEADO Y EMPACADO', 'TRIMEADO Y EMPACADO II', 'TRIMEADO Y EMPACADO III']
                 for i, fecha in enumerate(fechas):
                     tareas.append(self._crear_tarea(
@@ -588,8 +610,96 @@ class GeneradorCalendarioCultivo:
             'Blocked By (Dependencies)': blocked_by,
             'Blocking (Dependencies)': blocking
         }
+        # Agregar columna 'Cuarto' calculada a partir del número de lote (patrón puede variar por proyecto)
+        tarea['Cuarto'] = self._calcular_cuarto(lote, proyecto)
         self.task_id_counter_d += 1
         return tarea
+
+    def _calcular_cuarto(self, lote: str, proyecto: str = '') -> str:
+        """Devuelve el identificador de cuarto en formato 'C1', 'C2' o 'C2-C3'.
+
+        Patrón por defecto: L1->C1, L2->C2, L3->C3, L4->C1, etc.
+        Para lotes que ocupan dos cuartos se usa el separador '-' (ej. 'C2-C3').
+        """
+        import re
+        m = re.search(r"(\d+)", lote)
+        if not m:
+            return ''
+        n = int(m.group(1))
+        mod = n % 3
+        # Comportamiento por defecto (no FSM)
+        if proyecto == 'FSM':
+            # FSM pattern: L1->C2, L2->C1, L3->C3, repeat
+            if mod == 1:
+                return 'C2'
+            elif mod == 2:
+                return 'C1'
+            else:
+                return 'C3'
+        elif proyecto == 'RP':
+            # RP pattern: odd lot -> C2-C3 (two cuartos), even lot -> C1
+            if n % 2 == 1:
+                return 'C2-C3'
+            else:
+                return 'C1'
+        else:
+            # Default (SMB and others): L1->C1, L2->C2, L3->C3, repeat
+            mod = n % 3
+            if mod == 1:
+                return 'C1'
+            elif mod == 2:
+                return 'C2'
+            else:
+                return 'C3'
+
+    def _nota_fumigacion_para_semana(self, idx: int) -> str:
+        """Devuelve la nota de fumigación para una semana dada según la tabla de usuario.
+
+        Si no corresponde fumigación, devuelve `None`.
+        """
+        tabla = {
+            1: ("Avalanch + Pacaya", "2 ml/L + 2 ml/L", "Riego + Foliar"),
+            2: ("Captan + Pacaya", "1 g/L + 2 ml/L", "Foliar"),
+            3: ("Avalanch + Warton", "2 ml/L + 1 ml/L", "Riego + Foliar"),
+            4: ("Sultron", "3–4 ml/L", "Foliar"),
+            5: ("Pacaya + Avalanch", "2 ml/L + 2 ml/L", "Foliar + Riego"),
+            6: ("Warton + Captan", "1.5 ml/L + 1 g/L", "Foliar"),
+            7: ("Avalanch + Pacaya", "2 ml/L + 2 ml/L", "Riego + Foliar"),
+            8: ("Warton + Avalanch", "1.5 ml/L + 2 ml/L", "Foliar + Riego"),
+            9: ("Captan + Pacaya", "1 g/L + 2 ml/L", "Foliar"),
+            10: ("Warton", "1.5 ml/L", "Foliar"),
+            11: ("Avalanch", "2 ml/L", "Riego"),
+            12: ("Pacaya", "2 ml/L", "Foliar"),
+            13: ("Avalanch", "2 ml/L", "Riego"),
+            14: ("Pacaya", "2 ml/L", "Foliar"),
+            15: ("Avalanch", "2 ml/L", "Riego"),
+            16: ("Ninguno", "", ""),
+            17: ("Ninguno", "", ""),
+            18: ("Ninguno", "", ""),
+            19: ("Ninguno", "", ""),
+            20: ("Ninguno", "", ""),
+        }
+        info = tabla.get(idx)
+        if not info:
+            return None
+        productos, dosis, via = info
+        if productos.lower().startswith('ninguno'):
+            return None
+        nota = (
+            f"FUMIGAR - PRODUCTOS: {productos}\n"
+            f"DOSIS: {dosis}\n"
+            f"VÍA: {via}\n\n"
+            "INSTRUCCIONES: FUMIGAR DE ABAJO HACIA ARRIBA TODO EL LOTE. "
+        )
+        return nota
+
+    def _ultimo_dia_laboral(self, fechas: List[datetime]) -> datetime:
+        """Devuelve el último día del patrón semanal (ej. viernes o sábado).
+
+        Simplemente devuelve la última fecha en la lista `fechas`, que
+        corresponde al último día laboral según el patrón de la sucursal.
+        """
+        return fechas[-1]
     
     def guardar_csv(self, tareas: List[dict], nombre_archivo: str):
         """Guarda las tareas en formato EXACTO de L7_FSM_C.csv"""
@@ -598,7 +708,7 @@ class GeneradorCalendarioCultivo:
             'Section/Column', 'Assignee', 'Assignee Email', 'Start Date', 'Due Date',
             'Tags', 'Notes', 'Projects', 'Parent task', 'Blocked By (Dependencies)',
             'Blocking (Dependencies)', 'Semana', 'Lote', 'Projects (imported)', 
-            'Etapa', 'Tipo de Riego'
+            'Cuarto', 'Etapa', 'Tipo de Riego'
         ]
         
         with open(nombre_archivo, 'w', newline='', encoding='utf-8') as f:
