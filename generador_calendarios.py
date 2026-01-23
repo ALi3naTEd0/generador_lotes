@@ -230,6 +230,27 @@ class GeneradorCalendarioCultivo:
                     'Tipo de Riego': ''
                 })
                 self.task_id_counter_c += 1
+
+            # FUMIGACIÓN para la fase de Clonación (semanas 1-4) según tabla
+            nota_fum = self._nota_fumigacion_para_semana(num_semana)
+            if nota_fum:
+                fechas_fum = self._ultimo_dia_laboral(fechas)
+                tareas.append({
+                    'Task ID': str(self.task_id_counter_c),
+                    'Section/Column': 'Clonado',
+                    'Name': f'FUMIGAR - SEMANA {num_semana}',
+                    'Assignee': 'dgnerazion@gmail.com',
+                    'Assignee Email': 'dgnerazion@gmail.com',
+                    'Start Date': '',  # Sin start date para fumigación
+                    'Due Date': fechas_fum.strftime('%Y-%m-%d'),
+                    'Notes': nota_fum,
+                    'Semana': f'S{num_semana}',
+                    'Lote': lote,
+                    'Projects (imported)': proyecto,
+                    'Etapa': 'Clonación',
+                    'Tipo de Riego': 'FOLIAR'
+                })
+                self.task_id_counter_c += 1
         
         return tareas
     
