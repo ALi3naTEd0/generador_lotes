@@ -6,8 +6,8 @@
 !generador_calendarios_gui.py
 !generador_calendarios_flet.py
 !requirements.txt
-
 !assets/
+!assets/*
 
 # Never ignore .gitignore itself
 !.gitignore
