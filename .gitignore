@@ -7,11 +7,12 @@
 !generador_calendarios_flet.py
 !requirements.txt
 
+!assets/
+
 # Never ignore .gitignore itself
 !.gitignore
 
 # Ignore folders
-assets/
 SMC/
 old/
 
