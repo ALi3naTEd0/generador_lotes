@@ -92,7 +92,7 @@ class GeneradorCalendarioGUI(tk.Tk):
             'fecha_c': fecha_c,
             'fecha_d': fecha_d
         }
-        lote_c = f"L{lote} - {sucursal}"
+        lote_c = f"L{lote}"
         lote_d = f"L{lote}"
         self.tareas_c = self.generador.generar_fase_clonacion_c(lote_c, sucursal, fecha_c)
         self.tareas_d = self.generador.generar_fase_crecimiento_d(lote_d, sucursal, fecha_d)

@@ -194,6 +194,10 @@ class GeneradorCalendarioCultivo:
                     notas_riego = "INDICACIONES:\n    REGAR CLONES Y DOMO CON ATOMIZADOR"
                 else:
                     notas_riego = "—"
+                # Si es el riego V (i==5), forzar al último día del patrón (sábado)
+                fecha_due = fecha
+                if i == 5:
+                    fecha_due = fechas[-1]
                 
                 tareas.append({
                     'Task ID': str(self.task_id_counter_c),
@@ -201,8 +205,8 @@ class GeneradorCalendarioCultivo:
                     'Name': f"REGAR CLONES {['I','II','III','IV','V'][i-1]} - SEMANA {num_semana}",
                     'Assignee': '',
                     'Assignee Email': '',
-                    'Start Date': fecha.strftime('%Y-%m-%d'),
-                    'Due Date': fecha.strftime('%Y-%m-%d'),
+                    'Start Date': fecha_due.strftime('%Y-%m-%d'),
+                    'Due Date': fecha_due.strftime('%Y-%m-%d'),
                     'Notes': notas_riego,
                     'Semana': f'S{num_semana}',
                     'Lote': lote,
@@ -214,15 +218,17 @@ class GeneradorCalendarioCultivo:
             
             # Última tarea de la semana 4: ARMADO DE MACETA
             if num_semana == 4:
+                # ARMADO en el último día del patrón (sábado)
+                fecha_armado = fechas[-1]
                 tareas.append({
                     'Task ID': str(self.task_id_counter_c),
                     'Section/Column': 'Clonado',
                     'Name': 'ARMADO DE MACETA VEG. TEMPRANO - SEMANA 4',
                     'Assignee': 'dgnerazion@gmail.com',
                     'Assignee Email': 'dgnerazion@gmail.com',
-                    'Start Date': fechas[-1].strftime('%Y-%m-%d'),
-                    'Due Date': fechas[-1].strftime('%Y-%m-%d'),
-                    'Notes': 'INTSTRUCCIONES: CORTAR BOLSAS 15X15 AGREGAR SUSTRATO MOLIDO FINO 24 LT AGREGAR SUSTRATO PERLITA 16 LT MEZCLAR PAREJO LLENAR BOLSAS',
+                    'Start Date': fecha_armado.strftime('%Y-%m-%d'),
+                    'Due Date': fecha_armado.strftime('%Y-%m-%d'),
+                    'Notes': 'INSTRUCCIONES: CORTAR BOLSAS 15X15 AGREGAR SUSTRATO MOLIDO FINO 24 LT AGREGAR SUSTRATO PERLITA 16 LT MEZCLAR PAREJO LLENAR BOLSAS',
                     'Semana': f'S{num_semana}',
                     'Lote': lote,
                     'Projects (imported)': proyecto,
@@ -234,7 +240,8 @@ class GeneradorCalendarioCultivo:
             # FUMIGACIÓN para la fase de Clonación (semanas 1-4) según tabla
             nota_fum = self._nota_fumigacion_para_semana(num_semana)
             if nota_fum:
-                fechas_fum = self._ultimo_dia_laboral(fechas)
+                # Último día del patrón (sábado) para la fase de Clonación
+                fechas_fum = fechas[-1]
                 tareas.append({
                     'Task ID': str(self.task_id_counter_c),
                     'Section/Column': 'Clonado',
@@ -820,46 +827,7 @@ class GeneradorCalendarioCultivo:
                 return False
             print("Por favor responde 's' o 'n'")
 
-# Ejemplo de uso
-if __name__ == "__main__":
-    generador = GeneradorCalendarioCultivo()
-    
-    # Solicitar datos al usuario
-    datos = generador.solicitar_datos_usuario()
-    
-    lote_c = f"L{datos['lote_num']} - {datos['proyecto']}"
-    lote_d = f"L{datos['lote_num']}"
-    
-    # Generar tareas (sin guardar aún)
-    print(f"\n🔄 Generando preview de archivos...")
-    tareas_c = generador.generar_fase_clonacion_c(lote_c, datos['proyecto'], datos['fecha_c'])
-    tareas_d = generador.generar_fase_crecimiento_d(lote_d, datos['proyecto'], datos['fecha_d'])
-    
-    # Mostrar preview de archivo _C
-    nombre_archivo_c = f"L{datos['lote_num']}_{datos['proyecto']}_C.csv"
-    generador.mostrar_preview_calendario(tareas_c, nombre_archivo_c, "CLONACIÓN")
-    
-    # Mostrar preview de archivo _D
-    nombre_archivo_d = f"L{datos['lote_num']}_{datos['proyecto']}_D.csv"
-    generador.mostrar_preview_calendario(tareas_d, nombre_archivo_d, "CRECIMIENTO Y FLORACIÓN")
-    
-    # Confirmar antes de guardar
-    if generador.confirmar_generacion():
-        # Guardar archivo _C (en la carpeta actual, no hardcodeado)
-        print(f"\n📋 Guardando archivo _C...")
-        ruta_completa_c = os.path.join(os.getcwd(), nombre_archivo_c)
-        generador.guardar_csv(tareas_c, ruta_completa_c)
-        print(f"✅ Archivo guardado: {ruta_completa_c}")
-        
-        # Guardar archivo _D (en la carpeta actual, no hardcodeado)
-        print(f"\n📋 Guardando archivo _D...")
-        ruta_completa_d = os.path.join(os.getcwd(), nombre_archivo_d)
-        generador.guardar_csv(tareas_d, ruta_completa_d)
-        print(f"✅ Archivo guardado: {ruta_completa_d}")
-        
-        print("\n" + "=" * 60)
-        print("✨ ¡Archivos generados exitosamente!")
-        print(f"📁 Ubicación: {os.getcwd()}")
-        print("=" * 60)
-    else:
-        print("\n❌ Generación cancelada. No se guardó ningún archivo.")
+# Este archivo contiene la implementación del core funcional `GeneradorCalendarioCultivo`.
+__all__ = ['GeneradorCalendarioCultivo']
+# Nota: otros cores y experimentos se movieron a `archived/`.
+# Usa `generador_calendarios_gui.py` (Tkinter) o `run_cli.py` para ejecutar la aplicación.
