@@ -8,6 +8,8 @@
 !requirements.txt
 !assets/
 !assets/*
+!.github/
+!.github/**
 
 # Never ignore .gitignore itself
 !.gitignore

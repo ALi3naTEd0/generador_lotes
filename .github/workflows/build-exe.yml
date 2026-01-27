@@ -1,0 +1,46 @@
+
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Check icon exists
+        shell: powershell
+        run: |
+          if (!(Test-Path -Path 'assets/icon.ico')) {
+            Write-Error 'Error: assets/icon.ico not found. Add the file at assets/icon.ico and re-run the workflow.'
+            exit 1
+          }
+
+      - name: Build EXE with PyInstaller
+        run: |
+          # PyInstaller incluye automáticamente los módulos importados si están en el mismo directorio.
+          # Para mayor seguridad, forzamos la inclusión explícita de generador_calendarios.py como módulo.
+          pyinstaller --onefile --noconfirm --windowed --name generador_calendarios_gui --icon=assets/icon.ico --hidden-import tkcalendar --add-data "generador_calendarios.py;." generador_calendarios_gui.py
+          # Notas:
+          # --add-data "generador_calendarios.py;." asegura que el archivo esté disponible en el bundle.
+          # Si usas subcarpetas o assets adicionales, puedes agregarlos con más --add-data.
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generador_calendarios_gui-exe
+          path: dist/generador_calendarios_gui.exe
