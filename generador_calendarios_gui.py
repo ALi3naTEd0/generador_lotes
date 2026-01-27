@@ -17,6 +17,10 @@ class GeneradorCalendarioGUI(tk.Tk):
         frame = ttk.Frame(self)
         frame.pack(padx=20, pady=20, fill='both', expand=True)
 
+        # Footer de versión
+        self.footer = ttk.Label(self, text='v 1.0.0', anchor='e', foreground='gray')
+        self.footer.pack(side='bottom', fill='x', padx=5, pady=2)
+
         # Lote
         ttk.Label(frame, text='Número de lote:').grid(row=0, column=0, sticky='w')
         self.lote_var = tk.StringVar()
@@ -47,9 +51,10 @@ class GeneradorCalendarioGUI(tk.Tk):
         self.preview_btn = ttk.Button(frame, text='Generar Preview', command=self.generar_preview)
         self.preview_btn.grid(row=4, column=0, columnspan=2, pady=10)
 
-        # Preview
-        self.text_preview = tk.Text(frame, height=15, width=60, state='disabled')
-        self.text_preview.grid(row=5, column=0, columnspan=2, pady=10)
+        # Preview (más grande y legible)
+        self.text_preview = tk.Text(frame, height=22, width=70, state='disabled', font=("Consolas", 13), wrap='word', padx=12, pady=8)
+        self.text_preview.grid(row=5, column=0, columnspan=2, pady=14, sticky='nsew')
+        frame.rowconfigure(5, weight=2)
 
         # Botón guardar
         self.guardar_btn = ttk.Button(frame, text='Guardar Archivos', command=self.guardar_archivos, state='disabled')

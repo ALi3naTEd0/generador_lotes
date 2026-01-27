@@ -8,6 +8,8 @@
 !requirements.txt
 !assets/
 !assets/*
+!docs/
+!docs/**
 !.github/
 !.github/**
 
