@@ -104,18 +104,20 @@ class GeneradorCalendarioGUI(tk.Tk):
         nombre_archivo_c = f"L{lote}_{sucursal}_C.csv"
         nombre_archivo_d = f"L{lote}_{sucursal}_D.csv"
         # Mostrar preview
+        cuarto = self.generador._calcular_cuarto(lote_c, sucursal)
         self.text_preview.config(state='normal')
         self.text_preview.delete('1.0', tk.END)
         self.text_preview.insert(tk.END, f"Preview archivo _C: {nombre_archivo_c}\n")
         self.text_preview.insert(tk.END, f"Tareas: {len(self.tareas_c)}\n")
         self.text_preview.insert(tk.END, f"Preview archivo _D: {nombre_archivo_d}\n")
-        self.text_preview.insert(tk.END, f"Tareas: {len(self.tareas_d)}\n\n")
+        self.text_preview.insert(tk.END, f"Tareas: {len(self.tareas_d)}\n")
+        self.text_preview.insert(tk.END, f"Cuarto: {cuarto}\n\n")
         self.text_preview.insert(tk.END, f"Todas las tareas _C:\n")
         for t in self.tareas_c:
-            self.text_preview.insert(tk.END, f"- {t['Name']} ({t['Due Date']})\n")
+            self.text_preview.insert(tk.END, f"- [{t.get('Cuarto','')}] {t['Name']} ({t['Due Date']})\n")
         self.text_preview.insert(tk.END, f"\nTodas las tareas _D:\n")
         for t in self.tareas_d:
-            self.text_preview.insert(tk.END, f"- {t['Name']} ({t['Due Date']})\n")
+            self.text_preview.insert(tk.END, f"- [{t.get('Cuarto','')}] {t['Name']} ({t['Due Date']})\n")
         self.text_preview.config(state='disabled')
         self.guardar_btn.config(state='normal')
 

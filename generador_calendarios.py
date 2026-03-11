@@ -153,6 +153,7 @@ class GeneradorCalendarioCultivo:
     def generar_fase_clonacion_c(self, lote: str, proyecto: str, fecha_inicio: datetime) -> List[dict]:
         """Genera las 4 semanas de fase de clonación para archivo _C (lunes-sábado)"""
         tareas = []
+        cuarto = self._calcular_cuarto(lote, proyecto)
         fechas_semanas = self.generar_fechas_patron(fecha_inicio, 'lunes-sabado', 4)
         
         for num_semana, fechas in enumerate(fechas_semanas, 1):
@@ -182,6 +183,7 @@ class GeneradorCalendarioCultivo:
                 'Semana': f'S{num_semana}',
                 'Lote': lote,
                 'Projects (imported)': proyecto,
+                'Cuarto': cuarto,
                 'Etapa': 'Clonación',
                 'Tipo de Riego': tipo_riego
             })
@@ -211,6 +213,7 @@ class GeneradorCalendarioCultivo:
                     'Semana': f'S{num_semana}',
                     'Lote': lote,
                     'Projects (imported)': proyecto,
+                    'Cuarto': cuarto,
                     'Etapa': 'Clonación',
                     'Tipo de Riego': 'FOLIAR'  # ✅ AGREGADO
                 })
@@ -232,6 +235,7 @@ class GeneradorCalendarioCultivo:
                     'Semana': f'S{num_semana}',
                     'Lote': lote,
                     'Projects (imported)': proyecto,
+                    'Cuarto': cuarto,
                     'Etapa': 'Clonación',
                     'Tipo de Riego': ''
                 })
@@ -254,6 +258,7 @@ class GeneradorCalendarioCultivo:
                     'Semana': f'S{num_semana}',
                     'Lote': lote,
                     'Projects (imported)': proyecto,
+                    'Cuarto': cuarto,
                     'Etapa': 'Clonación',
                     'Tipo de Riego': 'FOLIAR'
                 })
@@ -644,10 +649,11 @@ class GeneradorCalendarioCultivo:
         return tarea
 
     def _calcular_cuarto(self, lote: str, proyecto: str = '') -> str:
-        """Devuelve el identificador de cuarto en formato 'C1', 'C2' o 'C2-C3'.
+        """Devuelve el identificador de cuarto en formato 'C1', 'C2', 'C3+C4' o 'C2+C3'.
 
-        Patrón por defecto: L1->C1, L2->C2, L3->C3, L4->C1, etc.
-        Para lotes que ocupan dos cuartos se usa el separador '-' (ej. 'C2-C3').
+        FSM:  mod3=1→C2, mod3=2→C1, mod3=0→C3
+        SMB:  mod3=1→C1, mod3=2→C2, mod3=0→C3+C4
+        RP:   impar→C2+C3, par→C1
         """
         import re
         m = re.search(r"(\d+)", lote)
@@ -655,7 +661,6 @@ class GeneradorCalendarioCultivo:
             return ''
         n = int(m.group(1))
         mod = n % 3
-        # Comportamiento por defecto (no FSM)
         if proyecto == 'FSM':
             # FSM pattern: L1->C2, L2->C1, L3->C3, repeat
             if mod == 1:
@@ -665,20 +670,19 @@ class GeneradorCalendarioCultivo:
             else:
                 return 'C3'
         elif proyecto == 'RP':
-            # RP pattern: odd lot -> C2-C3 (two cuartos), even lot -> C1
+            # RP pattern: odd lot -> C2+C3 (two cuartos), even lot -> C1
             if n % 2 == 1:
-                return 'C2-C3'
+                return 'C2+C3'
             else:
                 return 'C1'
         else:
-            # Default (SMB and others): L1->C1, L2->C2, L3->C3, repeat
-            mod = n % 3
+            # SMB and others: L1->C1, L2->C2, L3->C3+C4, repeat
             if mod == 1:
                 return 'C1'
             elif mod == 2:
                 return 'C2'
             else:
-                return 'C3'
+                return 'C3+C4'
 
     def _nota_fumigacion_para_semana(self, idx: int) -> str:
         """Devuelve la nota de fumigación para una semana dada según la tabla de usuario.
