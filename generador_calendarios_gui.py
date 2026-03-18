@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from tkcalendar import DateEntry
+from tkcalendar import DateEntry, Calendar
 from datetime import datetime, timedelta
 import os
 from generador_calendarios import GeneradorCalendarioCultivo
@@ -18,7 +18,7 @@ class GeneradorCalendarioGUI(tk.Tk):
         frame.pack(padx=20, pady=20, fill='both', expand=True)
 
         # Footer de versión
-        self.footer = ttk.Label(self, text='v 1.0.0', anchor='e', foreground='gray')
+        self.footer = ttk.Label(self, text='v 1.0.1', anchor='e', foreground='gray')
         self.footer.pack(side='bottom', fill='x', padx=5, pady=2)
 
         # Lote
@@ -43,9 +43,11 @@ class GeneradorCalendarioGUI(tk.Tk):
 
         # Fecha de inicio
         ttk.Label(frame, text='Fecha de inicio (LUNES):').grid(row=3, column=0, sticky='w')
-        self.fecha_c_entry = DateEntry(frame, date_pattern='yyyy-mm-dd', width=12)
+        self.fecha_c_entry = DateEntry(frame, date_pattern='yyyy-mm-dd', width=12, state='readonly')
         self.fecha_c_entry.set_date(datetime.now())
         self.fecha_c_entry.grid(row=3, column=1, padx=5, pady=2, sticky='ew')
+        self.abrir_calendario_btn = ttk.Button(frame, text='Abrir calendario', command=self._abrir_selector_fecha)
+        self.abrir_calendario_btn.grid(row=3, column=2, padx=(5, 0), pady=2, sticky='ew')
 
         # Botón preview
         self.preview_btn = ttk.Button(frame, text='Generar Preview', command=self.generar_preview)
@@ -61,6 +63,32 @@ class GeneradorCalendarioGUI(tk.Tk):
         self.guardar_btn.grid(row=6, column=0, columnspan=2, pady=10)
 
         frame.columnconfigure(1, weight=1)
+
+    def _abrir_selector_fecha(self):
+        ventana = tk.Toplevel(self)
+        ventana.title('Seleccionar fecha')
+        ventana.resizable(False, False)
+        ventana.transient(self)
+        ventana.grab_set()
+
+        frame = ttk.Frame(ventana, padding=10)
+        frame.pack(fill='both', expand=True)
+
+        fecha_actual = self.fecha_c_entry.get_date()
+        calendar = Calendar(frame, selectmode='day', date_pattern='yyyy-mm-dd')
+        calendar.selection_set(fecha_actual)
+        calendar.grid(row=0, column=0, columnspan=2, pady=(0, 10))
+
+        def aceptar():
+            self.fecha_c_entry.set_date(calendar.selection_get())
+            ventana.destroy()
+
+        ttk.Button(frame, text='Aceptar', command=aceptar).grid(row=1, column=0, padx=(0, 5), sticky='ew')
+        ttk.Button(frame, text='Cancelar', command=ventana.destroy).grid(row=1, column=1, sticky='ew')
+
+        frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=1)
+        self.wait_window(ventana)
 
     def _actualizar_patron(self, event=None):
         suc = self.sucursal_var.get()
